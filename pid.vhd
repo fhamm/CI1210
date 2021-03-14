@@ -4,7 +4,7 @@
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- controlador proporcional-integral-derivativo shesh
+-- controlador proporcional-integral-derivativo spinninsplainer
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 library ieee; use ieee.std_logic_1164.all;
