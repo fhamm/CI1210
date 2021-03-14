@@ -4,7 +4,7 @@
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- controlador proporcional-integral-derivativo
+-- controlador proporcional-integral-derivativo shesh
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 library ieee; use ieee.std_logic_1164.all;
