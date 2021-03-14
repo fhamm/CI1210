@@ -1,0 +1,46 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Thu Mar  4 15:25:15 2021
+[*]
+[dumpfile] "/home/roberto/digital/adm/trab21-ere2/v_pid.vcd"
+[dumpfile_mtime] "Thu Mar  4 15:15:06 2021"
+[dumpfile_size] 49997
+[savefile] "/home/roberto/digital/adm/trab21-ere2/v.sav"
+[timestart] 25480000
+[size] 1137 407
+[pos] -1 -1
+*-21.000000 2160000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_pid.
+[sst_width] 197
+[signals_width] 183
+[sst_expanded] 1
+[sst_vpaned_height] 81
+@28
+tb_pid.u_pid.clk
+tb_pid.u_pid.rst
+@200
+-
+@420
+tb_pid.u_pid.i_sigma
+[color] 1
+tb_pid.u_pid.i_epsilon
+[color] 7
+tb_pid.u_pid.i_delta
+@200
+-
+@420
+[color] 5
+tb_pid.u_pid.i_prop
+[color] 3
+tb_pid.u_pid.i_integr
+[color] 2
+tb_pid.u_pid.i_deriv
+@200
+-
+@420
+[color] 4
+tb_pid.u_pid.i_lambda
+@200
+-
+[pattern_trace] 1
+[pattern_trace] 0
