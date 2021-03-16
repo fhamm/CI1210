@@ -20,26 +20,26 @@ entity addBit is
 end addBit;
 
 architecture estrutural of addBit is 
-  component and2 is generic (prop:time);
+  component and2 is
                       port (A,B: in bit; S: out bit);
   end component and2;
 
-  component or3 is generic (prop:time);
+  component or3 is
                       port (A,B,C: in bit; S: out bit);
   end component or3;
 
-  component xor3 is generic (prop:time);
+  component xor3 is
                       port (A,B,C: in bit; S: out bit);
   end component xor3;
 
   signal a1,a2,a3: bit;
 begin
-  U_xor:  xor3 generic map ( t_xor3 ) port map ( bitA, bitB, vem, soma );
+  U_xor:  xor3 port map ( bitA, bitB, vem, soma );
 
-  U_and1: and2 generic map ( t_and2 ) port map ( bitA, bitB, a1 );
-  U_and2: and2 generic map ( t_and2 ) port map ( bitA, vem,  a2 );
-  U_and3: and2 generic map ( t_and2 ) port map ( vem,  bitB, a3 );
-  U_or:   or3  generic map ( t_or3  ) port map ( a1, a2, a3, vai );
+  U_and1: and2 port map ( bitA, bitB, a1 );
+  U_and2: and2 port map ( bitA, vem,  a2 );
+  U_and3: and2 port map ( vem,  bitB, a3 );
+  U_or:   or3  port map ( a1, a2, a3, vai );
 
 end estrutural;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -58,35 +58,33 @@ entity adianta4 is
 end adianta4;
 
 architecture adianta4 of adianta4 is 
-  component and2 is generic (prop:time);
+  component and2 is
                       port (A,B: in bit; S: out bit);
   end component and2;
-  component or2 is generic (prop:time);
+  component or2 is
                       port (A,B: in bit; S: out bit);
   end component or2;
 
   signal p,g : reg4;
 begin
 
-  U_a0: and2 generic map ( t_and2 ) port map ( a(0), b(0), g(0) );
-  U_a1: and2 generic map ( t_and2 ) port map ( a(1), b(1), g(1) );
-  U_a2: and2 generic map ( t_and2 ) port map ( a(2), b(2), g(2) );
-  U_a3: and2 generic map ( t_and2 ) port map ( a(3), b(3), g(3) );  
+  U_a0: and2 port map ( a(0), b(0), g(0) );
+  U_a1: and2 port map ( a(1), b(1), g(1) );
+  U_a2: and2 port map ( a(2), b(2), g(2) );
+  U_a3: and2 port map ( a(3), b(3), g(3) );  
 
-  U_o0: or2 generic map ( t_or2 ) port map ( a(0), b(0), p(0) );
-  U_o1: or2 generic map ( t_or2 ) port map ( a(1), b(1), p(1) );
-  U_o2: or2 generic map ( t_or2 ) port map ( a(2), b(2), p(2) );
-  U_o3: or2 generic map ( t_or2 ) port map ( a(3), b(3), p(3) );
+  U_o0: or2 port map ( a(0), b(0), p(0) );
+  U_o1: or2 port map ( a(1), b(1), p(1) );
+  U_o2: or2 port map ( a(2), b(2), p(2) );
+  U_o3: or2 port map ( a(3), b(3), p(3) );
 
-  c(0) <= g(0) or (p(0) and vem) after t_and2+t_or2;
-  c(1) <= g(1) or (p(1) and g(0)) or (p(1) and p(0) and vem)
-          after t_and3+t_or3;
+  c(0) <= g(0) or (p(0) and vem);
+  c(1) <= g(1) or (p(1) and g(0)) or (p(1) and p(0) and vem);
   c(2) <= g(2) or (p(2) and g(1)) or (p(2) and p(1) and g(0)) or
-          (p(2) and p(1) and p(0) and vem) after t_and4+t_or4;
+          (p(2) and p(1) and p(0) and vem);
   c(3) <= g(3) or (p(3) and g(2)) or (p(3) and p(2) and g(1)) or
           (p(3) and p(2) and p(1) and g(0)) or
-          (p(3) and p(2) and p(1) and p(0) and vem)
-          after t_and5+t_or5;
+          (p(3) and p(2) and p(1) and p(0) and vem);
 
 end adianta4;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -110,37 +108,36 @@ architecture adianta16 of adianta16 is
 begin
 
   gen: for i in 15 downto 0 generate
-    g(i) <= reject (contam * t_and2) inertial (a(i) and b(i)) after t_and2;
-    p(i) <= reject (contam * t_or2)  inertial (a(i) or  b(i)) after t_or2;
+    g(i) <= (a(i) and b(i));
+    p(i) <= (a(i) or  b(i));
   end generate gen;
 
 
-  pp(0) <= p(3) and p(2) and p(1) and p(0) after t_and4;
-  pp(1) <= p(7) and p(6) and p(5) and p(4) after t_and4;
-  pp(2) <= p(11) and p(10) and p(9) and p(8) after t_and4;
-  pp(3) <= p(15) and p(14) and p(13) and p(12) after t_and4;
+  pp(0) <= p(3) and p(2) and p(1) and p(0);
+  pp(1) <= p(7) and p(6) and p(5) and p(4);
+  pp(2) <= p(11) and p(10) and p(9) and p(8);
+  pp(3) <= p(15) and p(14) and p(13) and p(12);
 
   gg(0) <= g(3) or (p(3) and g(2)) or (p(3) and p(2) and g(1)) or
-           (p(3) and p(2) and p(1) and g(0)) after t_or4+t_and4;
+           (p(3) and p(2) and p(1) and g(0));
 
   gg(1) <= g(7) or (p(7) and g(6)) or (p(7) and p(6) and g(5)) or
-           (p(7) and p(6) and p(5) and g(4)) after t_or4+t_and4;
+           (p(7) and p(6) and p(5) and g(4));
 
   gg(2) <= g(11) or (p(11) and g(10)) or (p(11) and p(10) and g(9)) or
-           (p(11) and p(10) and p(9) and g(8)) after t_or4+t_and4;
+           (p(11) and p(10) and p(9) and g(8));
 
   gg(3) <= g(15) or (p(15) and g(14)) or (p(15) and p(14) and g(13)) or
-           (p(15) and p(14) and p(13) and g(12)) after t_or4+t_and4;
+           (p(15) and p(14) and p(13) and g(12));
 
-  cc(0) <= gg(0) or (pp(0) and vem) after t_or2+t_and2;
-  cc(1) <= gg(1) or (pp(1) and gg(0)) or (pp(1) and pp(0) and vem)
-           after t_or3+t_and3;
+  cc(0) <= gg(0) or (pp(0) and vem);
+  cc(1) <= gg(1) or (pp(1) and gg(0)) or (pp(1) and pp(0) and vem);
+
   cc(2) <= gg(2) or (pp(2) and gg(1)) or (pp(2) and pp(1) and gg(0)) or
-           (pp(2) and pp(1) and pp(0) and vem) after t_or4+t_and4;
+           (pp(2) and pp(1) and pp(0) and vem);
   cc(3) <= gg(3) or (pp(3) and gg(2)) or (pp(3) and pp(2) and gg(1)) or
            (pp(3) and pp(2) and pp(1) and gg(0)) or
-           (pp(3) and pp(2) and pp(1) and pp(0) and vem)
-           after t_or5+t_and5;
+           (pp(3) and pp(2) and pp(1) and pp(0) and vem);
 
   c <= cc;
 
@@ -227,6 +224,8 @@ end adderAdianta16;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- somador 32 bits
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 architecture structural of adderCSA32 is
 
   component adderAdianta16 is port(inpA, inpB : in reg16;
