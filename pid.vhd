@@ -30,11 +30,9 @@ architecture estrut of mux_2x32 is
 
  begin
 
-  Umux3: mux2 port map (A_in(3), B_in(2), sel, S_out(6));
-
   gen_z: for i in 31 downto 0 generate
 
-  Umux2X: mux2 port map (A_in(i), B_in(i), sel, S_out(i));
+    Umux2X: mux2 port map (A_in(i), B_in(i), sel, S_out(i));
 
   end generate gen_z;
 
