@@ -8,7 +8,6 @@
 library IEEE;
 library ieee; use ieee.std_logic_1164.all;
 use IEEE.numeric_std.all;
-use work.p_wires.all;
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- somador completo de um bit, modelo estrutural
