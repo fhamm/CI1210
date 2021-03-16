@@ -14,6 +14,32 @@ use IEEE.numeric_std.all;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 
+entity mux_2x32 is
+  port(A_in, B_in   : in reg32;
+       sel          : in bit;
+       S_out        : out reg32
+       );
+end mux_2x32;
+
+architecture estrut of mux_2x32 is
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+
+ begin
+
+  Umux3: mux2 port map (A_in(3), B_in(2), sel, S_out(6));
+
+  gen_z: for i in 31 downto 0 generate
+
+  Umux2X: mux2 port map (A_in(i), B_in(i), sel, S_out(i));
+
+  end generate gen_z;
+
+end architecture estrut;
+
 entity addBit is
   port(bitA, bitB, vem : in bit;    -- entradas A,B,vem-um
        soma, vai       : out bit);  -- saida C,vai-um
