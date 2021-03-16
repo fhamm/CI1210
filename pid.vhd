@@ -14,14 +14,14 @@ use IEEE.numeric_std.all;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 
-entity mux_2x32 is
-  port(A_in, B_in   : in reg32;
+entity mux_2x16 is
+  port(A_in, B_in   : in reg16;
        sel          : in bit;
-       S_out        : out reg32
+       S_out        : out reg16
        );
-end mux_2x32;
+end mux_2x16;
 
-architecture estrut of mux_2x32 is
+architecture estrut of mux_2x16 is
   component mux2 is
     port(A,B : in  bit;
          S   : in  bit;
@@ -30,7 +30,7 @@ architecture estrut of mux_2x32 is
 
  begin
 
-  gen_z: for i in 31 downto 0 generate
+  gen_z: for i in 15 downto 0 generate
 
     Umux2X: mux2 port map (A_in(i), B_in(i), sel, S_out(i));
 
@@ -265,12 +265,18 @@ architecture adderCSA32 of adderCSA32 is
                           vai  : out bit);
   end component adderAdianta16;
 
-  component mux_2x32 is
-    port(A_in, B_in   : in reg32;
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+
+  component mux_2x16 is
+    port(A_in, B_in   : in reg16;
          sel          : in bit;
-         S_out        : out reg32
+         S_out        : out reg16
          );
-  end component mux_2x32;
+  end component mux_2x16;
 
    signal x,y,z : bit;
    signal outE0, outE1: reg16;
@@ -286,16 +292,13 @@ begin
  Uadd16_3: adderAdianta16 port map(inpA(31 downto 16), 
  inpB(31 downto 16), outE1, '1', z);
  
----- MUX 2x32 ----
+---- MUX 2x16 OutC----
 
-  Umux32: mux_2x32 port map()
-
-  
+  Umux16: mux_2x16 port map(outE0, outE1, x, outC);
 
 
-
- outC(31 downto 16) <= outE0 when (x = '0') else outE1;
- vai <= y when (x = '0') else z;
+---- MUX 2x1  vai----
+  Umux2: mux2 port map(y, z, x, vai);
  
 end adderCSA32;
 
