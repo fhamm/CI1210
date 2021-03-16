@@ -248,9 +248,11 @@ end adderAdianta16;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- somador 32 bits
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
 entity adderCSA32 is
   port(inpA, inpB : in bit_vector;
        outC : out bit_vector;
+       vem : in bit;
        vai  : out bit);
 
 end entity adderCSA32;
@@ -262,6 +264,13 @@ architecture adderCSA32 of adderCSA32 is
                           vem  : in bit;
                           vai  : out bit);
   end component adderAdianta16;
+
+  component mux_2x32 is
+    port(A_in, B_in   : in reg32;
+         sel          : in bit;
+         S_out        : out reg32
+         );
+  end component mux_2x32;
 
    signal x,y,z : bit;
    signal outE0, outE1: reg16;
@@ -279,6 +288,10 @@ begin
  
 ---- MUX 2x32 ----
 
+  Umux32: mux_2x32 port map()
+
+  
+
 
 
  outC(31 downto 16) <= outE0 when (x = '0') else outE1;
@@ -289,6 +302,10 @@ end adderCSA32;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- pid
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+library ieee; use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.p_wires.all;
 
 entity pid is
   port (rst,clk : in    bit;
