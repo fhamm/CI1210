@@ -110,8 +110,8 @@ architecture adianta16 of adianta16 is
 begin
 
   gen: for i in 15 downto 0 generate
-    g(i) <= reject (contam * t_and2) inertial (a(i) and b(i)) after t_and2;
-    p(i) <= reject (contam * t_or2)  inertial (a(i) or  b(i)) after t_or2;
+    g(i) <= a(i) and b(i);
+    p(i) <= a(i) or  b(i);
   end generate gen;
 
 
@@ -227,7 +227,14 @@ end adderAdianta16;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- somador 32 bits
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-architecture structural of adderCSA32 is
+entity adderCSA32 is
+  port(inpA, inpB : in bit_vector;
+       outC : out bit_vector;
+       vai  : out bit);
+
+end entity adderCSA32;
+
+architecture adderCSA32 of adderCSA32 is
 
   component adderAdianta16 is port(inpA, inpB : in reg16;
                           outC : out reg16;
