@@ -14,6 +14,30 @@ use IEEE.numeric_std.all;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 
+entity mux_2x32 is
+  port(A_in, B_in   : in reg32;
+       sel          : in bit;
+       S_out        : out reg32
+       );
+end mux_2x32;
+
+architecture estrut of mux_2x32 is
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+
+ begin
+
+  gen_z: for i in 31 downto 0 generate
+
+    Umux2X: mux2 port map (A_in(i), B_in(i), sel, S_out(i));
+
+  end generate gen_z;
+
+end architecture estrut;
+
 entity addBit is
   port(bitA, bitB, vem : in bit;    -- entradas A,B,vem-um
        soma, vai       : out bit);  -- saida C,vai-um
@@ -108,8 +132,8 @@ architecture adianta16 of adianta16 is
 begin
 
   gen: for i in 15 downto 0 generate
-    g(i) <= (a(i) and b(i));
-    p(i) <= (a(i) or  b(i));
+    g(i) <= a(i) and b(i);
+    p(i) <= a(i) or  b(i);
   end generate gen;
 
 
@@ -224,9 +248,14 @@ end adderAdianta16;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- somador 32 bits
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+entity adderCSA32 is
+  port(inpA, inpB : in bit_vector;
+       outC : out bit_vector;
+       vai  : out bit);
 
+end entity adderCSA32;
 
-architecture structural of adderCSA32 is
+architecture adderCSA32 of adderCSA32 is
 
   component adderAdianta16 is port(inpA, inpB : in reg16;
                           outC : out reg16;
