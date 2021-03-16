@@ -4,7 +4,7 @@
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- controlador proporcional-integral-derivativo spinninsplainer
+-- controlador proporcional-integral-derivativo
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE;
 library ieee; use ieee.std_logic_1164.all;
@@ -49,7 +49,7 @@ architecture functional of pid is
 
 
   -- declaracao dos bit-vectors equivalentes (se necessário)
-  signal delta : reg20; -- como exemplo 
+  signal delta : reg32; -- como exemplo 
   
   
 begin  -- functional
