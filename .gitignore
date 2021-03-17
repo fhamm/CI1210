@@ -1,11 +1,11 @@
 *.out
-*.sh
 *.o
 *.pdf
-*.gp
 *.vcd
 *.sav
 *.cf
 *.txt
 *.data
 tb_pid
+run.sh
+plota.gp

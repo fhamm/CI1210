@@ -278,8 +278,14 @@ architecture adderCSA32 of adderCSA32 is
          );
   end component mux_2x16;
 
+  component addBit port(bitA, bitB, vem : in bit;
+                        soma, vai       : out bit);       
+  end component addBit;
+
    signal x,y,z : bit;
    signal outE0, outE1: reg16;
+
+   --signal carry : reg31;
    
 begin
 
@@ -294,12 +300,20 @@ begin
  
 ---- MUX 2x16 OutC----
 
-  Umux16: mux_2x16 port map(outE0, outE1, x, outC);
+  Umux16: mux_2x16 port map(outE0, outE1, x, outC(31 downto 16));
 
 
 ---- MUX 2x1  vai----
   Umux2: mux2 port map(y, z, x, vai);
- 
+
+  --Uadder0:  addBit port map(inpA(0), inpB(0), vem, outC(0), carry(0));
+
+  --gen: for i in 1 to 30 generate
+    --UadderX: addBit port map(inpA(i), inpB(i), carry(i-1), outC(i), carry(i));
+  --end generate;
+
+  --Uadder31: addBit port map(inpA(31), inpB(31), carry(30), outC(31), vai);
+
 end adderCSA32;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -339,6 +353,14 @@ architecture functional of pid is
   
   -- declaracao dos componentes
 
+  component adderCSA32 is
+    port(inpA, inpB : in bit_vector;
+         outC       : out bit_vector;
+         vem        : in bit;
+         vai        : out bit);
+  
+  end component adderCSA32;
+
   -- registradores, somadores
 
 
@@ -351,7 +373,7 @@ architecture functional of pid is
 
 
   -- declaracao dos bit-vectors equivalentes (se necessário)
-  signal delta : reg32; -- como exemplo 
+  --signal delta : reg32; -- como exemplo
   
   
 begin  -- functional
@@ -361,6 +383,10 @@ begin  -- functional
 
   -- essas expressoes devem ser trocadas para circuitos
   i_delta   <=  i_sigma - i_epsilon;
+  
+  -- Uadder: adderCSA32 port map (sigma, epsilon, delta, '1', vai_sheng);
+
+  -- i_delta <= to_integer(signed(to_stdlogicvector(delta)));
 
   i_prop    <= i_delta * k_prop;
 
@@ -385,14 +411,15 @@ begin  -- functional
       old  := 0;
       diff := 0;
     elsif rising_edge(clk) then
-      diff := (i_sigma - old) * k_deriv;
-      old  := i_sigma;
+      diff := (i_delta - old) * k_deriv;
+      old  := i_delta;
     end if;
     i_deriv <= diff;
   end process U_derivada;
 
   -- ameniza o efeito das contribuicoes de P, I, D
   i_lambda <= (i_prop + i_integr + i_deriv) / k_contrib;
+
 
   -- lambda e a saida do circuito e deve ser implementada (veja U_write)
   lambda <= SLV2BV32(std_logic_vector(to_signed(i_lambda, 32)));
