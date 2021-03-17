@@ -317,6 +317,76 @@ begin
 end adderCSA32;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- multiplicador x2
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity multx2 is
+  port(inpA : in bit_vector;
+       outA : out bit_vector;
+       m    : in bit
+      );
+
+end entity multx2;
+
+architecture multx2 of multx2 is
+
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+   
+begin
+
+  mux0: mux2 port map (inpA(0), '0', m, outA(0));
+
+  gen_z: for i in 1 to 31 generate
+
+    muxi: mux2 port map (inpA(i), inpA(i-1), m, outA(i));
+
+  end generate gen_z;
+
+end multx2;
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- multiplicador
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity mult is
+  port(inpm  : in bit_vector;
+       outm  : out bit_vector;
+       factor: in bit_vector
+      );
+
+end entity mult;
+
+architecture mult of mult is
+
+  component multx2 is
+    port(inpA : in bit_vector;
+         outA : out bit_vector;
+         m    : in bit);
+  end component multx2;
+
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+
+  signal t0_vec: reg32;
+  signal t1_vec: reg32;
+   
+begin
+
+    mult2: multx2 port map (inpm,   t0_vec, factor(0));
+    mult4: multx2 port map (t0_vec, t1_vec, factor(1));
+    mult8: multx2 port map (t1_vec, outm,   factor(2));
+
+end mult;
+
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- pid
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
