@@ -385,6 +385,113 @@ begin
 
 end mult;
 
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- divisor /2
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity divx2 is
+  port(inpA : in bit_vector;
+       outA : out bit_vector;
+       d    : in bit
+      );
+
+end entity divx2 ;
+
+architecture divx2  of divx2  is
+
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+   
+begin
+
+  gen_z: for i in 0 to 30 generate
+
+    muxi: mux2 port map (inpA(i), inpA(i+1), d, outA(i));
+
+  end generate gen_z;
+
+  mux0: mux2 port map (inpA(31), '0', d, outA(31));
+
+end divx2 ;
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- divisor
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity div is
+  port(inpd : in bit_vector;
+       outd : out bit_vector;      
+       divider   : in bit_vector
+      );
+
+end entity div ;
+
+architecture div  of div  is
+
+  component divx2 is
+    port(inpA : in bit_vector;
+         outA : out bit_vector;
+         d    : in bit);
+  end component divx2;
+
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+
+  signal t0_vec: reg32;
+  signal t1_vec: reg32;
+   
+begin
+
+  div2: divx2 port map (inpd,   t0_vec, divider(0));
+  div4: divx2 port map (t0_vec, t1_vec, divider(1));
+  div8: divx2 port map (t1_vec, outd,   divider(2));
+
+end div ;
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- complemento de dois
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity twocomp is
+  port(inpn : in bit_vector;
+       outn : out bit_vector
+       );
+end entity twocomp ;
+architecture twocomp of twocomp is
+
+  component inv is
+    port(A : in bit;
+         S : out bit
+        );
+  end component inv;
+
+  component adderCSA32 is
+    port(inpA, inpB : in bit_vector;
+         outC : out bit_vector;
+         vem : in bit;
+         vai  : out bit
+        );
+  end component adderCSA32;
+
+  signal t0_vec: reg32;
+   
+begin
+
+  gen_z: for i in 0 to 31 generate
+
+    noti: inv port map (inpn(i), t0_vec(i));
+
+  end generate gen_z;
+
+  sumi: adderCSA32 port map (t0_vec, x"00000000", outn, '1', open);
+
+end twocomp ;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- pid
@@ -422,14 +529,6 @@ architecture functional of pid is
   constant k_contrib : integer := k_prop + k_integr + k_deriv;
   
   -- declaracao dos componentes
-
-  component adderCSA32 is
-    port(inpA, inpB : in bit_vector;
-         outC       : out bit_vector;
-         vem        : in bit;
-         vai        : out bit);
-  
-  end component adderCSA32;
 
   -- registradores, somadores
 
