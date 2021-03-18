@@ -94,7 +94,7 @@ ghdl -c packageWires.vhd {aux,files}.vhd ${sim}.vhd tb_${sim}.vhd \
 ./$simulator --ieee-asserts=disable --stop-time=${length}${unit}s \
            --vcd=${visual} >output.txt
 
-test -v $WAVE  ||  gtkwave -O /dev/null ${visual} ${save}
+test -v $WAVE  ||  gtkwave.exe -O /dev/null ${visual} ${save}
 
 ./plota.gp -pdf
 

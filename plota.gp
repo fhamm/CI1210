@@ -80,7 +80,7 @@ if [ "x$YRANGE" = "x" ] ; then
   YRANGE="[-40:40]"       ## ELSE usa variavel do ambiente
 fi
 
-cat <<EOF0 | gnuplot
+cat <<EOF0 | gnuplot.exe
 set encoding iso_8859_1
 set notitle
 set xlabel "ciclo"

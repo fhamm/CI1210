@@ -385,6 +385,55 @@ begin
 
 end mult;
 
+use work.p_wires.all;
+entity derivador is
+  port (rst, clk : in   bit;
+        entrada  : in   reg32;
+        k_deriv: in   reg32;
+        saida    : out  reg32);
+end derivador;
+
+architecture derivador of derivador is
+
+  component adderCSA32 is
+    port(inpA, inpB : in bit_vector;
+         outC       : out bit_vector;
+         vem        : in bit;
+         vai        : out bit);
+  end component adderCSA32;
+
+  component registerN is
+    generic (NUM_BITS: integer;
+             INIT_VAL: bit_vector);
+    port(clk, rst, ld: in  bit;
+         D:            in  bit_vector(NUM_BITS-1 downto 0);
+         Q:            out bit_vector(NUM_BITS-1 downto 0));
+  end component registerN;
+
+  component twocomp is
+    port(inpn : in  reg32;
+         outn : out reg32
+         );
+  end component twocomp;
+
+  component mult is
+    port(inpm  : in bit_vector;
+         outm  : out bit_vector;
+         factor: in bit_vector
+        );
+  end component mult;
+
+  signal outreg1, outtwocomp, outsum, outmult: reg32;
+
+ begin
+
+  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '0', entrada, outreg1);
+  Utwoc:  twocomp port map (outreg1, outtwocomp);
+  Uadder: adderCSA32 port map (entrada, outtwocomp, outsum, '0', open);
+  Umul:   mult port map(outsum, outmult, k_deriv);
+  Ureg2:  registerN generic map (32, x"00000000") port map(clk, rst, '0', outmult, saida);
+end derivador;
+
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- pid
