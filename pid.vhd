@@ -250,8 +250,8 @@ end adderAdianta16;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 entity adderCSA32 is
-  port(inpA, inpB : in bit_vector;
-       outC : out bit_vector;
+  port(inpA, inpB : in reg32;
+       outC : out reg32;
        vem : in bit;
        vai  : out bit);
 
@@ -317,46 +317,15 @@ begin
 end adderCSA32;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- and4
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-use work.p_wires.all;
-entity and4 is
-  port (A, B, C, D: in bit;
-        F: out bit
-  );
-end entity and4;
-
-architecture and4 of and4 is
-
-  component and2 is
-    port (A,B: in bit; S: out bit);
-  end component and2;
-
-  signal t0, t1: bit;
-
-begin
-
-  and2A: and2 port map (A, B, t0);
-  and2B: and2 port map (C, D, t1);
-  and2C: and2 port map (t0, t1, F);
-
-end and4;
-  
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- mdctrl
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 entity mdctrl is 
-  port (inputN: in bit_vector;
-        outputS: out bit_vector
-        );
+  port (inputN: in reg32;
+        outputS: out reg32);
 end entity mdctrl;
 
 architecture mdctrl of mdctrl is
-
-  component and4 is
-    port (A, B, C, D: in bit; F: out bit);
-  end component and4;
 
   component or2 is
     port (A,B: in bit; S: out bit);
@@ -366,38 +335,12 @@ architecture mdctrl of mdctrl is
     port (A,B,C: in bit; S: out bit);
   end component or3;
 
-  component inv is
-    port(A : in bit;
-         S : out bit
-        );
-  end component inv;
-
-  signal N0_inv: bit;
-  signal N1_inv: bit;
-  signal N2_inv: bit; 
-  signal N3_inv: bit;
-
-  signal and_t0: bit;
-  signal and_t1: bit;
-  signal and_t2: bit;
-
 begin
-  
-  -- Sinais inversos
-  invA: inv port map (inputN(0), N0_inv);
-  invB: inv port map (inputN(1), N1_inv);
-  invC: inv port map (inputN(2), N2_inv);
-  invD: inv port map (inputN(3), N3_inv);
-
-  -- And's 
-  andA: and4 port map (N0_inv, inputN(1), N2_inv, N3_inv, and_t0);
-  andB: and4 port map (N0_inv, N1_inv, inputN(2), N3_inv, and_t1);
-  andC: and4 port map (N0_inv, N1_inv, N2_inv, inputN(3), and_t2);
 
   -- Or's 
-  orA: or3 port map (and_t0, and_t1, and_t2, outputS(0));
-  orB: or2 port map (and_t1, and_t2, outputS(1));
-  outputS(2) <= and_t2;
+  orA: or3 port map (inputN(1), inputN(2), inputN(3), outputS(0));
+  orB: or2 port map (inputN(2), inputN(3), outputS(1));
+  outputS(2) <= inputN(3);
 
 end mdctrl;
 
@@ -406,8 +349,8 @@ end mdctrl;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 entity multx2 is
-  port(inpA : in bit_vector;
-       outA : out bit_vector;
+  port(inpA : in reg32;
+       outA : out reg32;
        m    : in bit
       );
 
@@ -441,9 +384,9 @@ use ieee.numeric_std.all;
 use work.p_wires.all;
 
 entity mult is
-  port(inpM  : in bit_vector;
-       outM  : out bit_vector;
-       factor: in bit_vector
+  port(inpM  : in reg32;
+       outM  : out reg32;
+       factor: in reg32
       );
 
 end entity mult;
@@ -451,13 +394,13 @@ end entity mult;
 architecture mult of mult is
 
   component mdctrl is 
-    port (inputN : in bit_vector; 
-          outputS: out bit_vector);
+    port (inputN : in reg32; 
+          outputS: out reg32);
   end component mdctrl;
 
   component multx2 is
-    port(inpA : in bit_vector;
-         outA : out bit_vector;
+    port(inpA : in reg32;
+         outA : out reg32;
          m    : in bit);
   end component multx2;
 
@@ -471,13 +414,13 @@ architecture mult of mult is
   signal t1_vec: reg32;
   signal f_vec: reg32;
 
-  signal t_mul, t_mul2: integer;
+  --signal t_mul, t_mul2: integer;
    
 begin
-    t_mul <= to_integer(signed(to_stdlogicvector(inpM)));
-    t_mul2 <= to_integer(signed(to_stdlogicvector(factor)));
+    ---t_mul <= to_integer(signed(to_stdlogicvector(inpM)));
+    ---t_mul2 <= to_integer(signed(to_stdlogicvector(factor)));
 
-    outM <= INT2BV32(t_mul * t_mul2);
+    ---outM <= INT2BV32(t_mul * t_mul2);
 
     --mctrl: mdctrl port map (factor, f_vec);
 
@@ -516,14 +459,14 @@ architecture derivador of derivador is
   end component registerN;
 
   component twocomp is
-    port(inpn : in  reg32;
-         outn : out reg32
+    port(inpN : in  reg32;
+         outN : out reg32
          );
   end component twocomp;
 
   component mult is
-    port(inpm  : in reg32;
-         outm  : out reg32;
+    port(inpM  : in reg32;
+         outM  : out reg32;
          factor: in reg32
         );
   end component mult;
@@ -602,11 +545,10 @@ end integrador;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 entity divx2 is
-  port(inpA : in bit_vector;
-       outA : out bit_vector;
+  port(inpA : in reg32;
+       outA : out reg32;
        d    : in bit
       );
-
 end entity divx2 ;
 
 architecture divx2  of divx2  is
@@ -625,7 +567,7 @@ begin
 
   end generate gen_z;
 
-  mux0: mux2 port map (inpA(31), '0', d, outA(31));
+  outA(31) <= inpA(31);
 
 end divx2 ;
 
@@ -637,23 +579,23 @@ use ieee.numeric_std.all;
 use work.p_wires.all;
 
 entity div is
-  port(inpd : in bit_vector;
-       outd : out bit_vector;      
-       divider   : in bit_vector
+  port(inpD : in reg32;
+       outD : out reg32;      
+       divider   : in reg32
       );
 
-end entity div ;
+end entity div;
 
 architecture div  of div  is
 
   component mdctrl is 
-    port (inputN : in bit_vector; 
-          outputS: out bit_vector);
+    port (inputN : in reg32; 
+          outputS: out reg32);
   end component mdctrl;
 
   component divx2 is
-    port(inpA : in bit_vector;
-         outA : out bit_vector;
+    port(inpA : in reg32;
+         outA : out reg32;
          d    : in bit);
   end component divx2;
 
@@ -671,16 +613,15 @@ architecture div  of div  is
 
 begin
 
-  t_div1 <= to_integer(signed(to_stdlogicvector(inpd)));
-  t_div2 <= to_integer(signed(to_stdlogicvector(divider)));
+  --t_div1 <= to_integer(signed(to_stdlogicvector(inpd)));
+  --t_div2 <= to_integer(signed(to_stdlogicvector(divider)));
 
-  outD <= INT2BV32(t_div1 / t_div2);
+  --outD <= INT2BV32(t_div1 / t_div2);
 
-  --dctrl: mdctrl port map (divider, d_vec);
-
-  --div2: divx2 port map (inpd,   t0_vec, d_vec(0));
-  --div4: divx2 port map (t0_vec, t1_vec, d_vec(1));
-  --div8: divx2 port map (t1_vec, outd,   d_vec(2));
+  -- Divisão
+  div2: divx2 port map (inpD,   t0_vec, d_vec(2));
+  div4: divx2 port map (t0_vec, t1_vec, d_vec(1));
+  div8: divx2 port map (t1_vec, outD,   d_vec(0));
 
 end div ;
 
@@ -689,10 +630,10 @@ end div ;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 entity twocomp is
-  port(inpn : in reg32;
-       outn : out reg32
+  port(inpN : in reg32;
+       outN : out reg32
        );
-end entity twocomp ;
+end entity twocomp;
 architecture twocomp of twocomp is
 
   component inv is
@@ -721,7 +662,7 @@ begin
 
   sumi: adderCSA32 port map (t0_vec, x"00000001", outn, '0', open);
 
-end twocomp ;
+end twocomp;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- pid
@@ -759,6 +700,23 @@ architecture functional of pid is
   constant k_contrib : integer := k_prop + k_integr + k_deriv;
   
   -- declaracao dos componentes
+
+  component mdctrl is
+    port (inputN: in reg32;
+    outputS: out reg32);
+  end component mdctrl;
+
+  component mult is
+    port(inpM  : in reg32;
+    outM  : out reg32;
+    factor: in reg32);
+  end component mult;
+
+  component div is
+    port(inpD : in reg32;
+    outD : out reg32;      
+    divider   : in reg32);
+  end component div;
 
   -- registradores, somadores
 
@@ -806,11 +764,21 @@ architecture functional of pid is
   --signal delta : reg32; -- como exemplo
   signal teste: reg32;
   signal i_teste: integer;
+
+  signal t0: reg32;
+  signal t0_md: reg32;
+  signal i_t0: integer;
+
+  
   
 begin  -- functional
 
   i_sigma   <= to_integer(signed(to_stdlogicvector(sigma)));  -- bit2integer
   i_epsilon <= to_integer(signed(to_stdlogicvector(epsilon)));
+
+  test_md: mdctrl port map (x"00000008", t0_md);
+  test: div port map ("11111111111111111111111111111000", t0, x"00000002");
+  i_t0 <= to_integer(signed(to_stdlogicvector(t0)));
 
   -- essas expressoes devem ser trocadas para circuitos
   i_delta   <=  i_sigma - i_epsilon;
