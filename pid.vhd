@@ -226,7 +226,7 @@ begin
   U_a8_11: adianta4 port map
     (inpA(11 downto 8),inpB(11 downto 8),cc(1),c(11 downto 8)); 
 
-  U_b8: addBit port map ( inpA(8), inpB(8), cc(0), r(8),open );
+  U_b8: addBit port map ( inpA(8), inpB(8), cc(1), r(8),open );
   U_b9: addBit port map ( inpA(9), inpB(9),  c(8), r(9),open );
   U_ba: addBit port map ( inpA(10),inpB(10), c(9),r(10),open );
   U_bb: addBit port map ( inpA(11),inpB(11),c(10),r(11),open );
@@ -234,7 +234,7 @@ begin
   U_a12_15: adianta4 port map
     (inpA(15 downto 12),inpB(15 downto 12),cc(2),c(15 downto 12)); 
 
-  U_bc: addBit port map ( inpA(12),inpB(12),cc(0),r(12),open );
+  U_bc: addBit port map ( inpA(12),inpB(12),cc(2),r(12),open );
   U_bd: addBit port map ( inpA(13),inpB(13),c(12),r(13),open );
   U_be: addBit port map ( inpA(14),inpB(14),c(13),r(14),open );
   U_bf: addBit port map ( inpA(15),inpB(15),c(14),r(15),open );
@@ -436,7 +436,10 @@ end multx2;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- multiplicador
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library ieee; use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use work.p_wires.all;
+
 entity mult is
   port(inpM  : in bit_vector;
        outM  : out bit_vector;
@@ -467,14 +470,20 @@ architecture mult of mult is
   signal t0_vec: reg32;
   signal t1_vec: reg32;
   signal f_vec: reg32;
+
+  signal t_mul, t_mul2: integer;
    
 begin
+    t_mul <= to_integer(signed(to_stdlogicvector(inpM)));
+    t_mul2 <= to_integer(signed(to_stdlogicvector(factor)));
 
-    mctrl: mdctrl port map (factor, f_vec);
+    outM <= INT2BV32(t_mul * t_mul2);
 
-    mult2: multx2 port map (inpM,   t0_vec, f_vec(0));
-    mult4: multx2 port map (t0_vec, t1_vec, f_vec(1));
-    mult8: multx2 port map (t1_vec, outM,   f_vec(2));
+    --mctrl: mdctrl port map (factor, f_vec);
+
+    --mult2: multx2 port map (inpM,   t0_vec, f_vec(0));
+    --mult4: multx2 port map (t0_vec, t1_vec, f_vec(1));
+    --mult8: multx2 port map (t1_vec, outM,   f_vec(2));
 
 end mult;
 
@@ -492,8 +501,8 @@ end derivador;
 architecture derivador of derivador is
 
   component adderCSA32 is
-    port(inpA, inpB : in bit_vector;
-         outC       : out bit_vector;
+    port(inpA, inpB : in reg32;
+         outC       : out reg32;
          vem        : in bit;
          vai        : out bit);
   end component adderCSA32;
@@ -513,9 +522,9 @@ architecture derivador of derivador is
   end component twocomp;
 
   component mult is
-    port(inpm  : in bit_vector;
-         outm  : out bit_vector;
-         factor: in bit_vector
+    port(inpm  : in reg32;
+         outm  : out reg32;
+         factor: in reg32
         );
   end component mult;
 
@@ -523,12 +532,70 @@ architecture derivador of derivador is
 
  begin
 
-  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '0', entrada, outreg1);
+  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', entrada, outreg1);
   Utwoc:  twocomp port map (outreg1, outtwocomp);
   Uadder: adderCSA32 port map (entrada, outtwocomp, outsum, '0', open);
   Umul:   mult port map(outsum, outmult, k_deriv);
-  Ureg2:  registerN generic map (32, x"00000000") port map(clk, rst, '0', outmult, saida);
+  Ureg2:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outmult, saida);
+
 end derivador;
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- integrador
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity integrador is
+  port (rst, clk : in   bit;
+        entrada  : in   reg32;
+        k_integr : in   reg32;
+        k_mini   : in reg32;
+        saida    : out  reg32);    
+end entity integrador;
+
+architecture integrador of integrador is
+
+  component adderCSA32 is
+    port(inpA, inpB : in bit_vector;
+         outC       : out bit_vector;
+         vem        : in bit;
+         vai        : out bit);
+  end component adderCSA32;
+
+  component registerN is
+    generic (NUM_BITS: integer;
+             INIT_VAL: bit_vector);
+    port(clk, rst, ld: in  bit;
+         D:            in  bit_vector(NUM_BITS-1 downto 0);
+         Q:            out bit_vector(NUM_BITS-1 downto 0));
+  end component registerN;
+
+  component mult is
+    port(inpm  : in bit_vector;
+         outm  : out bit_vector;
+         factor: in bit_vector
+        );
+  end component mult;
+
+  component div is
+    port(inpd : in bit_vector;
+         outd : out bit_vector;      
+         divider   : in bit_vector
+        );
+  
+  end component div;
+
+  signal outConst, outMinimizer, outSum, outReg: reg32;
+begin
+
+  Umul1:  mult port map (entrada, outConst, k_integr);
+  Udiv1:  div  port map (outConst, outMinimizer, k_mini);
+  Uadder: adderCSA32 port map (outMinimizer, outReg, outSum, '0', open);
+  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outSum, outReg);
+
+  saida <= outReg;
+
+
+end integrador;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- divisor /2
@@ -565,7 +632,10 @@ end divx2 ;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- divisor
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library ieee; use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use work.p_wires.all;
+
 entity div is
   port(inpd : in bit_vector;
        outd : out bit_vector;      
@@ -597,13 +667,20 @@ architecture div  of div  is
   signal t1_vec: reg32;
   signal d_vec: reg32;
 
+  signal t_div1, t_div2: integer;
+
 begin
 
-  dctrl: mdctrl port map (divider, d_vec);
+  t_div1 <= to_integer(signed(to_stdlogicvector(inpd)));
+  t_div2 <= to_integer(signed(to_stdlogicvector(divider)));
 
-  div2: divx2 port map (inpd,   t0_vec, d_vec(0));
-  div4: divx2 port map (t0_vec, t1_vec, d_vec(1));
-  div8: divx2 port map (t1_vec, outd,   d_vec(2));
+  outD <= INT2BV32(t_div1 / t_div2);
+
+  --dctrl: mdctrl port map (divider, d_vec);
+
+  --div2: divx2 port map (inpd,   t0_vec, d_vec(0));
+  --div4: divx2 port map (t0_vec, t1_vec, d_vec(1));
+  --div8: divx2 port map (t1_vec, outd,   d_vec(2));
 
 end div ;
 
@@ -612,8 +689,8 @@ end div ;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 entity twocomp is
-  port(inpn : in bit_vector;
-       outn : out bit_vector
+  port(inpn : in reg32;
+       outn : out reg32
        );
 end entity twocomp ;
 architecture twocomp of twocomp is
@@ -625,8 +702,8 @@ architecture twocomp of twocomp is
   end component inv;
 
   component adderCSA32 is
-    port(inpA, inpB : in bit_vector;
-         outC : out bit_vector;
+    port(inpA, inpB : in reg32;
+         outC : out reg32;
          vem : in bit;
          vai  : out bit
         );
@@ -642,7 +719,7 @@ begin
 
   end generate gen_z;
 
-  sumi: adderCSA32 port map (t0_vec, x"00000000", outn, '1', open);
+  sumi: adderCSA32 port map (t0_vec, x"00000001", outn, '0', open);
 
 end twocomp ;
 
@@ -685,9 +762,40 @@ architecture functional of pid is
 
   -- registradores, somadores
 
+  component adderCSA32 is
+    port(inpA, inpB : in bit_vector;
+         outC       : out bit_vector;
+         vem        : in bit;
+         vai        : out bit);
+  end component adderCSA32;
 
+  component mult is
+    port(inpm  : in bit_vector;
+         outm  : out bit_vector;
+         factor: in bit_vector
+        );
+  end component mult;
 
-  
+  component twocomp is
+    port(inpn : in  reg32;
+         outn : out reg32
+         );
+  end component twocomp;
+
+  component derivador is
+    port (rst, clk : in   bit;
+          entrada  : in   reg32;
+          k_deriv: in   reg32;
+          saida    : out  reg32);
+  end component derivador;
+
+  component integrador is
+    port (rst, clk : in   bit;
+          entrada  : in   reg32;
+          k_integr : in   reg32;
+          k_mini   : in reg32;
+          saida    : out  reg32);    
+  end component integrador;
 
   -- declaracao dos sinais internos INTEIROS
   signal i_sigma, i_epsilon, i_delta : integer := 0;
@@ -696,7 +804,8 @@ architecture functional of pid is
 
   -- declaracao dos bit-vectors equivalentes (se necessário)
   --signal delta : reg32; -- como exemplo
-  
+  signal teste: reg32;
+  signal i_teste: integer;
   
 begin  -- functional
 
@@ -706,9 +815,8 @@ begin  -- functional
   -- essas expressoes devem ser trocadas para circuitos
   i_delta   <=  i_sigma - i_epsilon;
   
-  -- Uadder: adderCSA32 port map (sigma, epsilon, delta, '1', vai_sheng);
-
-  -- i_delta <= to_integer(signed(to_stdlogicvector(delta)));
+  test: integrador port map (rst, clk, sigma, INT2BV32(k_integr), INT2BV32(1), teste);
+  i_teste <= to_integer(signed(to_stdlogicvector(teste)));
 
   i_prop    <= i_delta * k_prop;
 
