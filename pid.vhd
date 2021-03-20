@@ -317,6 +317,92 @@ begin
 end adderCSA32;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- and4
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity and4 is
+  port (A, B, C, D: in bit;
+        F: out bit
+  );
+end entity and4;
+
+architecture and4 of and4 is
+
+  component and2 is
+    port (A,B: in bit; S: out bit);
+  end component and2;
+
+  signal t0, t1: bit;
+
+begin
+
+  and2A: and2 port map (A, B, t0);
+  and2B: and2 port map (C, D, t1);
+  and2C: and2 port map (t0, t1, F);
+
+end and4;
+  
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mdctrl
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity mdctrl is 
+  port (inputN: in bit_vector;
+        outputS: out bit_vector
+        );
+end entity mdctrl;
+
+architecture mdctrl of mdctrl is
+
+  component and4 is
+    port (A, B, C, D: in bit; F: out bit);
+  end component and4;
+
+  component or2 is
+    port (A,B: in bit; S: out bit);
+  end component or2;
+
+  component or3 is
+    port (A,B,C: in bit; S: out bit);
+  end component or3;
+
+  component inv is
+    port(A : in bit;
+         S : out bit
+        );
+  end component inv;
+
+  signal N0_inv: bit;
+  signal N1_inv: bit;
+  signal N2_inv: bit; 
+  signal N3_inv: bit;
+
+  signal and_t0: bit;
+  signal and_t1: bit;
+  signal and_t2: bit;
+
+begin
+  
+  -- Sinais inversos
+  invA: inv port map (inputN(0), N0_inv);
+  invB: inv port map (inputN(1), N1_inv);
+  invC: inv port map (inputN(2), N2_inv);
+  invD: inv port map (inputN(3), N3_inv);
+
+  -- And's 
+  andA: and4 port map (N0_inv, inputN(1), N2_inv, N3_inv, and_t0);
+  andB: and4 port map (N0_inv, N1_inv, inputN(2), N3_inv, and_t1);
+  andC: and4 port map (N0_inv, N1_inv, N2_inv, inputN(3), and_t2);
+
+  -- Or's 
+  orA: or3 port map (and_t0, and_t1, and_t2, outputS(0));
+  orB: or2 port map (and_t1, and_t2, outputS(1));
+  --s2: port map (and_t2, outputS(2));
+  outputS(2) <= and_t2; -- como fazer sem funcional?
+
+end mdctrl;
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- multiplicador x2
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
@@ -353,14 +439,19 @@ end multx2;
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 entity mult is
-  port(inpm  : in bit_vector;
-       outm  : out bit_vector;
+  port(inpM  : in bit_vector;
+       outM  : out bit_vector;
        factor: in bit_vector
       );
 
 end entity mult;
 
 architecture mult of mult is
+
+  component mdctrl is 
+    port (inputN : in bit_vector; 
+          outputS: out bit_vector);
+  end component mdctrl;
 
   component multx2 is
     port(inpA : in bit_vector;
@@ -376,12 +467,15 @@ architecture mult of mult is
 
   signal t0_vec: reg32;
   signal t1_vec: reg32;
+  signal f_vec: reg32;
    
 begin
 
-    mult2: multx2 port map (inpm,   t0_vec, factor(0));
-    mult4: multx2 port map (t0_vec, t1_vec, factor(1));
-    mult8: multx2 port map (t1_vec, outm,   factor(2));
+    mctrl: mdctrl port map (factor, f_vec);
+
+    mult2: multx2 port map (inpM,   t0_vec, f_vec(0));
+    mult4: multx2 port map (t0_vec, t1_vec, f_vec(1));
+    mult8: multx2 port map (t1_vec, outM,   f_vec(2));
 
 end mult;
 
@@ -483,6 +577,11 @@ end entity div ;
 
 architecture div  of div  is
 
+  component mdctrl is 
+    port (inputN : in bit_vector; 
+          outputS: out bit_vector);
+  end component mdctrl;
+
   component divx2 is
     port(inpA : in bit_vector;
          outA : out bit_vector;
@@ -497,12 +596,15 @@ architecture div  of div  is
 
   signal t0_vec: reg32;
   signal t1_vec: reg32;
-   
+  signal d_vec: reg32;
+
 begin
 
-  div2: divx2 port map (inpd,   t0_vec, divider(0));
-  div4: divx2 port map (t0_vec, t1_vec, divider(1));
-  div8: divx2 port map (t1_vec, outd,   divider(2));
+  dctrl: mdctrl port map (divider, d_vec);
+
+  div2: divx2 port map (inpd,   t0_vec, d_vec(0));
+  div4: divx2 port map (t0_vec, t1_vec, d_vec(1));
+  div8: divx2 port map (t1_vec, outd,   d_vec(2));
 
 end div ;
 
