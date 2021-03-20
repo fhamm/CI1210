@@ -397,8 +397,7 @@ begin
   -- Or's 
   orA: or3 port map (and_t0, and_t1, and_t2, outputS(0));
   orB: or2 port map (and_t1, and_t2, outputS(1));
-  --s2: port map (and_t2, outputS(2));
-  outputS(2) <= and_t2; -- como fazer sem funcional?
+  outputS(2) <= and_t2;
 
 end mdctrl;
 
