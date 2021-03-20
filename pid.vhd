@@ -422,11 +422,11 @@ begin
 
     ---outM <= INT2BV32(t_mul * t_mul2);
 
-    --mctrl: mdctrl port map (factor, f_vec);
+    mctrl: mdctrl port map (factor, f_vec);
 
-    --mult2: multx2 port map (inpM,   t0_vec, f_vec(0));
-    --mult4: multx2 port map (t0_vec, t1_vec, f_vec(1));
-    --mult8: multx2 port map (t1_vec, outM,   f_vec(2));
+    mult2: multx2 port map (inpM,   t0_vec, f_vec(0));
+    mult4: multx2 port map (t0_vec, t1_vec, f_vec(1));
+    mult8: multx2 port map (t1_vec, outM,   f_vec(2));
 
 end mult;
 
@@ -619,6 +619,8 @@ begin
   --outD <= INT2BV32(t_div1 / t_div2);
 
   -- Divisão
+  mctrl: mdctrl port map (divider, d_vec);
+
   div2: divx2 port map (inpD,   t0_vec, d_vec(2));
   div4: divx2 port map (t0_vec, t1_vec, d_vec(1));
   div8: divx2 port map (t1_vec, outD,   d_vec(0));
@@ -727,13 +729,6 @@ architecture functional of pid is
          vai        : out bit);
   end component adderCSA32;
 
-  component mult is
-    port(inpm  : in bit_vector;
-         outm  : out bit_vector;
-         factor: in bit_vector
-        );
-  end component mult;
-
   component twocomp is
     port(inpn : in  reg32;
          outn : out reg32
@@ -783,7 +778,7 @@ begin  -- functional
   -- essas expressoes devem ser trocadas para circuitos
   i_delta   <=  i_sigma - i_epsilon;
   
-  test: integrador port map (rst, clk, sigma, INT2BV32(k_integr), INT2BV32(1), teste);
+  test2: integrador port map (rst, clk, sigma, INT2BV32(k_integr), INT2BV32(2), teste);
   i_teste <= to_integer(signed(to_stdlogicvector(teste)));
 
   i_prop    <= i_delta * k_prop;
