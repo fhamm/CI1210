@@ -9,8 +9,9 @@ library IEEE;
 library ieee; use ieee.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
+
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- somador completo de um bit, modelo estrutural
+-- mux 2 16 bits
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 
@@ -38,6 +39,38 @@ architecture estrut of mux_2x16 is
 
 end architecture estrut;
 
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux 2 32 bits
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux_2x32 is
+  port(A_in, B_in   : in reg32;
+       sel          : in bit;
+       S_out        : out reg32
+       );
+end mux_2x32;
+
+architecture estrut of mux_2x32 is
+  component mux2 is
+    port(A,B : in  bit;
+         S   : in  bit;
+         Z   : out bit);
+  end component mux2;
+
+ begin
+
+  gen_z: for i in 31 downto 0 generate
+
+    Umux2X: mux2 port map (A_in(i), B_in(i), sel, S_out(i));
+
+  end generate gen_z;
+
+end architecture estrut;
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- somador completo de um bit, modelo estrutural
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 entity addBit is
   port(bitA, bitB, vem : in bit;    -- entradas A,B,vem-um
        soma, vai       : out bit);  -- saida C,vai-um
@@ -528,6 +561,7 @@ architecture integrador of integrador is
   end component div;
 
   signal outConst, outMinimizer, outSum, outReg: reg32;
+  --signal irineu: integer;
 begin
 
   Umul1:  mult port map (entrada, outConst, k_integr);
@@ -537,7 +571,7 @@ begin
 
   saida <= outReg;
 
-
+  --irineu <= to_integer(signed(to_stdlogicvector(outMinimizer)));
 end integrador;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -581,9 +615,7 @@ use work.p_wires.all;
 entity div is
   port(inpD : in reg32;
        outD : out reg32;      
-       divider   : in reg32
-      );
-
+       divider   : in reg32);
 end entity div;
 
 architecture div  of div  is
@@ -593,39 +625,70 @@ architecture div  of div  is
           outputS: out reg32);
   end component mdctrl;
 
+  component adderCSA32 is
+    port(inpA, inpB : in reg32;
+         outC       : out reg32;
+         vem        : in bit;
+         vai        : out bit);
+  end component adderCSA32;
+
   component divx2 is
     port(inpA : in reg32;
          outA : out reg32;
          d    : in bit);
   end component divx2;
 
-  component mux2 is
-    port(A,B : in  bit;
-         S   : in  bit;
-         Z   : out bit);
-  end component mux2;
+  component twocomp is
+    port(inpN : in reg32;
+        outN : out reg32);
+  end component twocomp;
 
+  component mux_2x32 is
+    port(A_in, B_in   : in reg32;
+         sel          : in bit;
+         S_out        : out reg32
+         );
+  end component mux_2x32;
+
+  signal adj_input: reg32;
+  signal adj_output: reg32;
+  signal twocomp_input: reg32;
+  signal twocomp_output: reg32;
   signal t0_vec: reg32;
   signal t1_vec: reg32;
   signal d_vec: reg32;
 
-  signal t_div1, t_div2: integer;
+  signal t_in, t_out: integer;
+  signal wtf: reg32;
 
 begin
 
-  --t_div1 <= to_integer(signed(to_stdlogicvector(inpd)));
-  --t_div2 <= to_integer(signed(to_stdlogicvector(divider)));
+  -- Calcula complemento de dois da entrada
+  twocompin: twocomp port map (inpD, twocomp_input);
 
-  --outD <= INT2BV32(t_div1 / t_div2);
+  -- Se for negativo, pega complemento de dois
+  inpmux: mux_2x32 port map (inpD, twocomp_input, inpD(31), adj_input);
+
+  t_in <= to_integer(signed(to_stdlogicvector(adj_input)));
+
+  -- Controle do circuito
+  dctrl: mdctrl port map (divider, d_vec);
 
   -- Divisão
-  mctrl: mdctrl port map (divider, d_vec);
+  div2: divx2 port map (adj_input, t0_vec,  d_vec(2));
+  div4: divx2 port map (t0_vec, t1_vec,     d_vec(1));
+  div8: divx2 port map (t1_vec, adj_output, d_vec(0));
 
-  div2: divx2 port map (inpD,   t0_vec, d_vec(2));
-  div4: divx2 port map (t0_vec, t1_vec, d_vec(1));
-  div8: divx2 port map (t1_vec, outD,   d_vec(0));
+  -- Calcula complemento de dois da saída
+  twocompout: twocomp port map (adj_output, twocomp_output);
 
-end div ;
+  -- Se for negativo, faz complemento de dois novamente
+  outmux: mux_2x32 port map (adj_output, twocomp_output, inpD(31), wtf);
+
+  outD <= wtf;
+  t_out <= to_integer(signed(to_stdlogicvector(wtf)));
+
+end div;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- complemento de dois
@@ -696,7 +759,7 @@ architecture functional of pid is
   
   constant k_prop   : integer := 4;
   constant k_integr : integer := 2;
-  constant k_deriv  : integer := 4;
+  constant k_deriv  : integer := 2;
 
   -- valor será deslocado para a direita para reduzir peso de cada fator
   constant k_contrib : integer := k_prop + k_integr + k_deriv;
@@ -757,61 +820,89 @@ architecture functional of pid is
 
   -- declaracao dos bit-vectors equivalentes (se necessário)
   --signal delta : reg32; -- como exemplo
-  signal teste: reg32;
-  signal i_teste: integer;
+  --signal teste: reg32;
+ -- signal i_teste: integer;
 
   signal t0: reg32;
-  signal t0_md: reg32;
+  --signal t0_md: reg32;
   signal i_t0: integer;
 
-  
+  signal delta, prop, neg_epsilon, integr, deriv, outSum1, outSum2: reg32;
   
 begin  -- functional
 
   i_sigma   <= to_integer(signed(to_stdlogicvector(sigma)));  -- bit2integer
   i_epsilon <= to_integer(signed(to_stdlogicvector(epsilon)));
 
-  test_md: mdctrl port map (x"00000008", t0_md);
-  test: div port map ("11111111111111111111111111111000", t0, x"00000002");
+  --test_md: mdctrl port map (x"00000008", t0_md);
+  test: div port map (x"FFFFFFF6", t0, x"00000008");
   i_t0 <= to_integer(signed(to_stdlogicvector(t0)));
 
   -- essas expressoes devem ser trocadas para circuitos
-  i_delta   <=  i_sigma - i_epsilon;
-  
-  test2: integrador port map (rst, clk, sigma, INT2BV32(k_integr), INT2BV32(2), teste);
-  i_teste <= to_integer(signed(to_stdlogicvector(teste)));
+  --i_delta   <=  i_sigma - i_epsilon;
 
-  i_prop    <= i_delta * k_prop;
+  -- calculo de delta (delta <- sigma - epsilon)
+  Ucomp1: twocomp port map(epsilon, neg_epsilon);
+  Uadd1:  adderCSA32 port map (sigma, neg_epsilon, delta, '0', open);
+  
+  -- i_delta para visualização no gtkwave
+  i_delta   <= to_integer(signed(to_stdlogicvector(delta)));
+  
+  --test2: integrador port map (rst, clk, sigma, INT2BV32(k_integr), INT2BV32(2), teste);
+  --i_teste <= to_integer(signed(to_stdlogicvector(teste)));
+
+  --i_prop    <= i_delta * k_prop;
+
+  -- Calculo do ajuste proporcional (prop <- delta * k_prop)
+  Umul1: mult port map(delta, prop, INT2BV32(k_prop));
+
+  -- i_prop para visualização no gtkwave
+  i_prop   <= to_integer(signed(to_stdlogicvector(prop)));
 
   -- esse processo devemser trocado para circuito(s)
-  U_integral: process(clk, rst)
-    variable sum: integer := 0;
-  begin
-    if rst = '1' then
-      sum := 0;
-    elsif rising_edge(clk) then
-      sum := sum + (i_delta * k_integr)/8; -- minimizar efeito da integral
-    end if;
-    i_integr <= sum;
-  end process U_integral;
-
+  -- U_integral: process(clk, rst)
+  -- variable sum: integer := 0;
+  -- begin
+  --   if rst = '1' then
+  --     sum := 0;
+  --   elsif rising_edge(clk) then
+  --     sum := sum + (i_delta * k_integr)/8; -- minimizar efeito da integral
+  --   end if;
+  --   i_integr <= sum;
+  -- end process U_integral;
+  
+  -- Calculo do ajuste integral
+  Uintegr: integrador port map (rst, clk, delta, INT2BV32(k_integr), x"00000008", integr);
+  
+  -- i_integr para visualização no gtkwave
+  i_integr   <= to_integer(signed(to_stdlogicvector(integr)));
 
   -- esse processo deve ser trocado para circuito(s)
-  U_derivada: process(clk, rst)
-    variable old, diff: integer := 0;
-  begin
-    if rst = '1' then
-      old  := 0;
-      diff := 0;
-    elsif rising_edge(clk) then
-      diff := (i_delta - old) * k_deriv;
-      old  := i_delta;
-    end if;
-    i_deriv <= diff;
-  end process U_derivada;
+  -- U_derivada: process(clk, rst)
+  --   variable old, diff: integer := 0;
+  -- begin
+  --   if rst = '1' then
+  --     old  := 0;
+  --     diff := 0;
+  --   elsif rising_edge(clk) then
+  --     diff := (i_delta - old) * k_deriv;
+  --     old  := i_delta;
+  --   end if;
+  --   i_deriv <= diff;
+  -- end process U_derivada;
+
+  -- Calculo do ajuste derivativo
+  Uderiv: derivador port map (rst, clk, delta, INT2BV32(k_deriv), deriv);
+  
+  -- i_deriv para ajuste no gtkwave
+  i_deriv <= to_integer(signed(to_stdlogicvector(deriv)));
 
   -- ameniza o efeito das contribuicoes de P, I, D
   i_lambda <= (i_prop + i_integr + i_deriv) / k_contrib;
+
+  --Uadd2: adderCSA32 port map (integr, deriv, outSum1, '0', open);
+  --Uadd3: adderCSA32 port map (prop, outSum1, outSum2, '0', open);
+  --Udiv2: div port map(outSum2, lambda, INT2BV32(k_contrib));
 
 
   -- lambda e a saida do circuito e deve ser implementada (veja U_write)
@@ -947,5 +1038,5 @@ begin
   epsilon <= SLV2BV32(std_logic_vector(to_signed(i_error, 32)));
 
 end architecture functional;
--- ----------------------------------------------------------------------
+-------------------------------------------------------------------------
 
