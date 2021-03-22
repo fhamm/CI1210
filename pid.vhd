@@ -317,8 +317,6 @@ architecture adderCSA32 of adderCSA32 is
 
    signal x,y,z : bit;
    signal outE0, outE1: reg16;
-
-   --signal carry : reg31;
    
 begin
 
@@ -332,22 +330,51 @@ begin
  inpB(31 downto 16), outE1, '1', z);
  
 ---- MUX 2x16 OutC----
-
   Umux16: mux_2x16 port map(outE0, outE1, x, outC(31 downto 16));
-
 
 ---- MUX 2x1  vai----
   Umux2: mux2 port map(y, z, x, vai);
 
-  --Uadder0:  addBit port map(inpA(0), inpB(0), vem, outC(0), carry(0));
-
-  --gen: for i in 1 to 30 generate
-    --UadderX: addBit port map(inpA(i), inpB(i), carry(i-1), outC(i), carry(i));
-  --end generate;
-
-  --Uadder31: addBit port map(inpA(31), inpB(31), carry(30), outC(31), vai);
-
 end adderCSA32;
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- complemento de dois
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity twocomp is
+  port(inpN : in reg32;
+       outN : out reg32
+       );
+end entity twocomp;
+architecture twocomp of twocomp is
+
+  component inv is
+    port(A : in bit;
+         S : out bit
+        );
+  end component inv;
+
+  component adderCSA32 is
+    port(inpA, inpB : in reg32;
+         outC : out reg32;
+         vem : in bit;
+         vai  : out bit
+        );
+  end component adderCSA32;
+
+  signal t0_vec: reg32;
+   
+begin
+
+  gen_z: for i in 0 to 31 generate
+
+    noti: inv port map (inpn(i), t0_vec(i)); -- complemento de 1
+
+  end generate gen_z;
+
+  sumi: adderCSA32 port map (t0_vec, x"00000001", outn, '0', open); -- complemento de 2
+
+end twocomp;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- mdctrl
@@ -446,14 +473,8 @@ architecture mult of mult is
   signal t0_vec: reg32;
   signal t1_vec: reg32;
   signal f_vec: reg32;
-
-  --signal t_mul, t_mul2: integer;
    
 begin
-    ---t_mul <= to_integer(signed(to_stdlogicvector(inpM)));
-    ---t_mul2 <= to_integer(signed(to_stdlogicvector(factor)));
-
-    ---outM <= INT2BV32(t_mul * t_mul2);
 
     mctrl: mdctrl port map (factor, f_vec);
 
@@ -462,117 +483,6 @@ begin
     mult8: multx2 port map (t1_vec, outM,   f_vec(2));
 
 end mult;
-
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- derivador
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-use work.p_wires.all;
-entity derivador is
-  port (rst, clk : in   bit;
-        entrada  : in   reg32;
-        k_deriv: in   reg32;
-        saida    : out  reg32);
-end derivador;
-
-architecture derivador of derivador is
-
-  component adderCSA32 is
-    port(inpA, inpB : in reg32;
-         outC       : out reg32;
-         vem        : in bit;
-         vai        : out bit);
-  end component adderCSA32;
-
-  component registerN is
-    generic (NUM_BITS: integer;
-             INIT_VAL: bit_vector);
-    port(clk, rst, ld: in  bit;
-         D:            in  bit_vector(NUM_BITS-1 downto 0);
-         Q:            out bit_vector(NUM_BITS-1 downto 0));
-  end component registerN;
-
-  component twocomp is
-    port(inpN : in  reg32;
-         outN : out reg32
-         );
-  end component twocomp;
-
-  component mult is
-    port(inpM  : in reg32;
-         outM  : out reg32;
-         factor: in reg32
-        );
-  end component mult;
-
-  signal outreg1, outtwocomp, outsum, outmult: reg32;
-
- begin
-
-  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', entrada, outreg1);
-  Utwoc:  twocomp port map (outreg1, outtwocomp);
-  Uadder: adderCSA32 port map (entrada, outtwocomp, outsum, '0', open);
-  Umul:   mult port map(outsum, outmult, k_deriv);
-  Ureg2:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outmult, saida);
-
-end derivador;
-
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- integrador
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-use work.p_wires.all;
-entity integrador is
-  port (rst, clk : in   bit;
-        entrada  : in   reg32;
-        k_integr : in   reg32;
-        k_mini   : in reg32;
-        saida    : out  reg32);    
-end entity integrador;
-
-architecture integrador of integrador is
-
-  component adderCSA32 is
-    port(inpA, inpB : in bit_vector;
-         outC       : out bit_vector;
-         vem        : in bit;
-         vai        : out bit);
-  end component adderCSA32;
-
-  component registerN is
-    generic (NUM_BITS: integer;
-             INIT_VAL: bit_vector);
-    port(clk, rst, ld: in  bit;
-         D:            in  bit_vector(NUM_BITS-1 downto 0);
-         Q:            out bit_vector(NUM_BITS-1 downto 0));
-  end component registerN;
-
-  component mult is
-    port(inpm  : in bit_vector;
-         outm  : out bit_vector;
-         factor: in bit_vector
-        );
-  end component mult;
-
-  component div is
-    port(inpd : in bit_vector;
-         outd : out bit_vector;      
-         divider   : in bit_vector
-        );
-  
-  end component div;
-
-  signal outConst, outMinimizer, outSum, outReg: reg32;
-  --signal irineu: integer;
-begin
-
-  Umul1:  mult port map (entrada, outConst, k_integr);
-  Udiv1:  div  port map (outConst, outMinimizer, k_mini);
-  Uadder: adderCSA32 port map (outMinimizer, outReg, outSum, '0', open);
-  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outSum, outReg);
-
-  saida <= outReg;
-
-  --irineu <= to_integer(signed(to_stdlogicvector(outMinimizer)));
-end integrador;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- divisor /2
@@ -691,43 +601,114 @@ begin
 end div;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- complemento de dois
+-- derivador
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
-entity twocomp is
-  port(inpN : in reg32;
-       outN : out reg32
-       );
-end entity twocomp;
-architecture twocomp of twocomp is
+entity derivador is
+  port (rst, clk : in   bit;
+        entrada  : in   reg32;
+        k_deriv: in   reg32;
+        saida    : out  reg32);
+end derivador;
 
-  component inv is
-    port(A : in bit;
-         S : out bit
-        );
-  end component inv;
+architecture derivador of derivador is
 
   component adderCSA32 is
     port(inpA, inpB : in reg32;
-         outC : out reg32;
-         vem : in bit;
-         vai  : out bit
-        );
+         outC       : out reg32;
+         vem        : in bit;
+         vai        : out bit);
   end component adderCSA32;
 
-  signal t0_vec: reg32;
-   
+  component registerN is
+    generic (NUM_BITS: integer;
+             INIT_VAL: bit_vector);
+    port(clk, rst, ld: in  bit;
+         D:            in  bit_vector(NUM_BITS-1 downto 0);
+         Q:            out bit_vector(NUM_BITS-1 downto 0));
+  end component registerN;
+
+  component twocomp is
+    port(inpN : in  reg32;
+         outN : out reg32
+         );
+  end component twocomp;
+
+  component mult is
+    port(inpM  : in reg32;
+         outM  : out reg32;
+         factor: in reg32
+        );
+  end component mult;
+
+  signal outreg1, outtwocomp, outsum, outmult: reg32;
+
+ begin
+
+  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', entrada, outreg1);
+  Utwoc:  twocomp port map (outreg1, outtwocomp);
+  Uadder: adderCSA32 port map (entrada, outtwocomp, outsum, '0', open);
+  Umul:   mult port map(outsum, outmult, k_deriv);
+  Ureg2:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outmult, saida);
+
+end derivador;
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- integrador
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+entity integrador is
+  port (rst, clk : in   bit;
+        entrada  : in   reg32;
+        k_integr : in   reg32;
+        k_mini   : in reg32;
+        saida    : out  reg32);    
+end entity integrador;
+
+architecture integrador of integrador is
+
+  component adderCSA32 is
+    port(inpA, inpB : in bit_vector;
+         outC       : out bit_vector;
+         vem        : in bit;
+         vai        : out bit);
+  end component adderCSA32;
+
+  component registerN is
+    generic (NUM_BITS: integer;
+             INIT_VAL: bit_vector);
+    port(clk, rst, ld: in  bit;
+         D:            in  bit_vector(NUM_BITS-1 downto 0);
+         Q:            out bit_vector(NUM_BITS-1 downto 0));
+  end component registerN;
+
+  component mult is
+    port(inpm  : in bit_vector;
+         outm  : out bit_vector;
+         factor: in bit_vector
+        );
+  end component mult;
+
+  component div is
+    port(inpd : in bit_vector;
+         outd : out bit_vector;      
+         divider   : in bit_vector
+        );
+  
+  end component div;
+
+  signal outConst, outMinimizer, outSum, outReg: reg32;
+
 begin
 
-  gen_z: for i in 0 to 31 generate
+  Umul1:  mult port map (entrada, outConst, k_integr);
+  Udiv1:  div  port map (outConst, outMinimizer, k_mini);
+  Uadder: adderCSA32 port map (outMinimizer, outReg, outSum, '0', open);
+  Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outSum, outReg);
 
-    noti: inv port map (inpn(i), t0_vec(i));
+  saida <= outReg;
 
-  end generate gen_z;
-
-  sumi: adderCSA32 port map (t0_vec, x"00000001", outn, '0', open);
-
-end twocomp;
+end integrador;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- pid
@@ -765,6 +746,7 @@ architecture functional of pid is
   constant k_contrib : integer := k_prop + k_integr + k_deriv;
   
   -- declaracao dos componentes
+  -- registradores, somadores
 
   component mdctrl is
     port (inputN: in reg32;
@@ -782,8 +764,6 @@ architecture functional of pid is
     outD : out reg32;      
     divider   : in reg32);
   end component div;
-
-  -- registradores, somadores
 
   component adderCSA32 is
     port(inpA, inpB : in bit_vector;
@@ -819,27 +799,15 @@ architecture functional of pid is
 
 
   -- declaracao dos bit-vectors equivalentes (se necessário)
-  --signal delta : reg32; -- como exemplo
-  --signal teste: reg32;
- -- signal i_teste: integer;
-
-  signal t0: reg32;
-  --signal t0_md: reg32;
-  signal i_t0: integer;
-
-  signal delta, prop, neg_epsilon, integr, deriv, outSum1, outSum2: reg32;
+  signal delta, prop, neg_epsilon, integr, deriv, outSum1, outSum2, saida: reg32;
   
 begin  -- functional
 
   i_sigma   <= to_integer(signed(to_stdlogicvector(sigma)));  -- bit2integer
   i_epsilon <= to_integer(signed(to_stdlogicvector(epsilon)));
 
-  --test_md: mdctrl port map (x"00000008", t0_md);
-  test: div port map (x"FFFFFFF6", t0, x"00000008");
-  i_t0 <= to_integer(signed(to_stdlogicvector(t0)));
-
   -- essas expressoes devem ser trocadas para circuitos
-  --i_delta   <=  i_sigma - i_epsilon;
+  ---- i_delta   <=  i_sigma - i_epsilon;
 
   -- calculo de delta (delta <- sigma - epsilon)
   Ucomp1: twocomp port map(epsilon, neg_epsilon);
@@ -847,11 +815,9 @@ begin  -- functional
   
   -- i_delta para visualização no gtkwave
   i_delta   <= to_integer(signed(to_stdlogicvector(delta)));
-  
-  --test2: integrador port map (rst, clk, sigma, INT2BV32(k_integr), INT2BV32(2), teste);
-  --i_teste <= to_integer(signed(to_stdlogicvector(teste)));
 
-  --i_prop    <= i_delta * k_prop;
+
+  ---- i_prop    <= i_delta * k_prop;
 
   -- Calculo do ajuste proporcional (prop <- delta * k_prop)
   Umul1: mult port map(delta, prop, INT2BV32(k_prop));
@@ -898,15 +864,18 @@ begin  -- functional
   i_deriv <= to_integer(signed(to_stdlogicvector(deriv)));
 
   -- ameniza o efeito das contribuicoes de P, I, D
-  i_lambda <= (i_prop + i_integr + i_deriv) / k_contrib;
+  --i_lambda <= (i_prop + i_integr + i_deriv) / k_contrib;
 
-  --Uadd2: adderCSA32 port map (integr, deriv, outSum1, '0', open);
-  --Uadd3: adderCSA32 port map (prop, outSum1, outSum2, '0', open);
-  --Udiv2: div port map(outSum2, lambda, INT2BV32(k_contrib));
+  Uadd2: adderCSA32 port map (integr, deriv, outSum1, '0', open);
+  Uadd3: adderCSA32 port map (prop, outSum1, outSum2, '0', open);
+  Udiv2: div port map(outSum2, saida, INT2BV32(k_contrib));
 
+  -- i_lambda para visualização no gtkwave
+  i_lambda <= to_integer(signed(to_stdlogicvector(saida)));
+  lambda <= saida;
 
   -- lambda e a saida do circuito e deve ser implementada (veja U_write)
-  lambda <= SLV2BV32(std_logic_vector(to_signed(i_lambda, 32)));
+  --lambda <= SLV2BV32(std_logic_vector(to_signed(i_lambda, 32)));
 
 
   
