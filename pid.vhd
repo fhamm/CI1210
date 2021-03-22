@@ -343,8 +343,7 @@ end adderCSA32;
 use work.p_wires.all;
 entity twocomp is
   port(inpN : in reg32;
-       outN : out reg32
-       );
+       outN : out reg32);
 end entity twocomp;
 architecture twocomp of twocomp is
 
@@ -410,10 +409,8 @@ end mdctrl;
 use work.p_wires.all;
 entity multx2 is
   port(inpA : in reg32;
-       outA : out reg32;
-       m    : in bit
-      );
-
+       m    : in bit;
+       outA : out reg32);
 end entity multx2;
 
 architecture multx2 of multx2 is
@@ -445,10 +442,8 @@ use work.p_wires.all;
 
 entity mult is
   port(inpM  : in reg32;
-       outM  : out reg32;
-       factor: in reg32
-      );
-
+       factor: in reg32;
+       outM  : out reg32);
 end entity mult;
 
 architecture mult of mult is
@@ -490,9 +485,8 @@ end mult;
 use work.p_wires.all;
 entity divx2 is
   port(inpA : in reg32;
-       outA : out reg32;
-       d    : in bit
-      );
+       d    : in bit;
+       outA : out reg32);
 end entity divx2 ;
 
 architecture divx2  of divx2  is
@@ -524,8 +518,8 @@ use work.p_wires.all;
 
 entity div is
   port(inpD : in reg32;
-       outD : out reg32;      
-       divider   : in reg32);
+       divider : in reg32;
+       outD : out reg32);     
 end entity div;
 
 architecture div  of div  is
@@ -544,8 +538,8 @@ architecture div  of div  is
 
   component divx2 is
     port(inpA : in reg32;
-         outA : out reg32;
-         d    : in bit);
+         d    : in bit;
+         outA : out reg32);
   end component divx2;
 
   component twocomp is
@@ -585,9 +579,9 @@ begin
   dctrl: mdctrl port map (divider, d_vec);
 
   -- Divisão
-  div2: divx2 port map (adj_input, t0_vec,  d_vec(2));
-  div4: divx2 port map (t0_vec, t1_vec,     d_vec(1));
-  div8: divx2 port map (t1_vec, adj_output, d_vec(0));
+  div2: divx2 port map (adj_input, d_vec(2), t0_vec);
+  div4: divx2 port map (t0_vec,    d_vec(1), t1_vec);
+  div8: divx2 port map (t1_vec,    d_vec(0), adj_output);
 
   -- Calcula complemento de dois da saída
   twocompout: twocomp port map (adj_output, twocomp_output);
@@ -630,15 +624,13 @@ architecture derivador of derivador is
 
   component twocomp is
     port(inpN : in  reg32;
-         outN : out reg32
-         );
+         outN : out reg32);
   end component twocomp;
 
   component mult is
     port(inpM  : in reg32;
-         outM  : out reg32;
-         factor: in reg32
-        );
+         factor: in reg32;
+         outM  : out reg32);
   end component mult;
 
   signal outreg1, outtwocomp, outsum, outmult: reg32;
@@ -648,7 +640,7 @@ architecture derivador of derivador is
   Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', entrada, outreg1);
   Utwoc:  twocomp port map (outreg1, outtwocomp);
   Uadder: adderCSA32 port map (entrada, outtwocomp, outsum, '0', open);
-  Umul:   mult port map(outsum, outmult, k_deriv);
+  Umul:   mult port map(outsum, k_deriv, outmult);
   Ureg2:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outmult, saida);
 
 end derivador;
@@ -684,25 +676,22 @@ architecture integrador of integrador is
 
   component mult is
     port(inpm  : in bit_vector;
-         outm  : out bit_vector;
-         factor: in bit_vector
-        );
+         factor: in bit_vector;
+         outm  : out bit_vector);
   end component mult;
 
   component div is
     port(inpd : in bit_vector;
-         outd : out bit_vector;      
-         divider   : in bit_vector
-        );
-  
+         divider : in bit_vector;
+         outd : out bit_vector);
   end component div;
 
   signal outConst, outMinimizer, outSum, outReg: reg32;
 
 begin
 
-  Umul1:  mult port map (entrada, outConst, k_integr);
-  Udiv1:  div  port map (outConst, outMinimizer, k_mini);
+  Umul1:  mult port map (entrada, k_integr, outConst);
+  Udiv1:  div  port map (outConst, k_mini, outMinimizer);
   Uadder: adderCSA32 port map (outMinimizer, outReg, outSum, '0', open);
   Ureg1:  registerN generic map (32, x"00000000") port map(clk, rst, '1', outSum, outReg);
 
@@ -755,14 +744,14 @@ architecture functional of pid is
 
   component mult is
     port(inpM  : in reg32;
-    outM  : out reg32;
-    factor: in reg32);
+         factor: in reg32;
+         outM  : out reg32);
   end component mult;
 
   component div is
     port(inpD : in reg32;
-    outD : out reg32;      
-    divider   : in reg32);
+         divider   : in reg32;
+         outD : out reg32);      
   end component div;
 
   component adderCSA32 is
@@ -774,8 +763,7 @@ architecture functional of pid is
 
   component twocomp is
     port(inpn : in  reg32;
-         outn : out reg32
-         );
+         outn : out reg32);
   end component twocomp;
 
   component derivador is
@@ -820,7 +808,7 @@ begin  -- functional
   ---- i_prop    <= i_delta * k_prop;
 
   -- Calculo do ajuste proporcional (prop <- delta * k_prop)
-  Umul1: mult port map(delta, prop, INT2BV32(k_prop));
+  Umul1: mult port map(delta, INT2BV32(k_prop), prop);
 
   -- i_prop para visualização no gtkwave
   i_prop   <= to_integer(signed(to_stdlogicvector(prop)));
@@ -868,7 +856,7 @@ begin  -- functional
 
   Uadd2: adderCSA32 port map (integr, deriv, outSum1, '0', open);
   Uadd3: adderCSA32 port map (prop, outSum1, outSum2, '0', open);
-  Udiv2: div port map(outSum2, saida, INT2BV32(k_contrib));
+  Udiv2: div port map(outSum2, INT2BV32(k_contrib), saida);
 
   -- i_lambda para visualização no gtkwave
   i_lambda <= to_integer(signed(to_stdlogicvector(saida)));
